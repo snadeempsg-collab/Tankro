@@ -27,7 +27,7 @@ export default function OwnerSelector({ onSelect }: OwnerSelectorProps) {
       const role = selectedUser === 'Akram' ? 'Manager' : 'Owner';
       onSelect(selectedUser, role);
     } else {
-      setError('Incorrect password! (தவறான கடவுச்சொல்! Password is same as name in lowercase)');
+      setError('Incorrect password! Password is same as name in lowercase');
     }
   };
 
@@ -44,7 +44,7 @@ export default function OwnerSelector({ onSelect }: OwnerSelectorProps) {
         <div className="flex flex-col items-center">
           <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-lg border border-slate-100 overflow-hidden mb-4">
             <img
-              src="/src/assets/images/tankro_logo_1784013728692.jpg"
+              src="/src/assets/images/tankro_logo_new_1784019299723.jpg"
               alt="Tankro Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -54,7 +54,7 @@ export default function OwnerSelector({ onSelect }: OwnerSelectorProps) {
             Tankro Sathy
           </h1>
           <p className="text-xs text-blue-600 font-bold mt-1.5 uppercase tracking-wider">
-            டேங்க்ரோ சத்தி (சத்தியமங்கலம்)
+            Tankro Sathy (Sathyamangalam)
           </p>
           <p className="text-[11px] text-slate-400 mt-1 max-w-xs leading-normal">
             Secure multi-role payroll, jobs, and customer tracker
@@ -68,7 +68,7 @@ export default function OwnerSelector({ onSelect }: OwnerSelectorProps) {
           {/* User Selection */}
           <div>
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Select Account (பயனர் கணக்கு)
+              Select Account
             </label>
             <div className="grid grid-cols-3 gap-2">
               {(['Nadeem', 'Yuvaraj', 'Akram'] as const).map((user) => {
@@ -104,7 +104,7 @@ export default function OwnerSelector({ onSelect }: OwnerSelectorProps) {
           {/* Password Field */}
           <div>
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex justify-between">
-              <span>Password (கடவுச்சொல்)</span>
+              <span>Password</span>
               <span className="text-[10px] text-slate-400 font-normal">
                 Hint: <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-600 font-semibold">{selectedUser.toLowerCase()}</code>
               </span>
@@ -145,7 +145,7 @@ export default function OwnerSelector({ onSelect }: OwnerSelectorProps) {
             className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-100 transition-all cursor-pointer flex items-center justify-center gap-2"
             id="login-submit-btn"
           >
-            <span>Log In securely ({selectedUser === 'Akram' ? 'மேலாளர் உள்நுழைவு' : 'நிர்வாகி உள்நுழைவு'})</span>
+            <span>Log In securely ({selectedUser === 'Akram' ? 'Manager Login' : 'Owner Login'})</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

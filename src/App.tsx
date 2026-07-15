@@ -23,7 +23,8 @@ import {
   Settings,
   HelpCircle,
   CheckCircle2,
-  ListFilter
+  ListFilter,
+  Info
 } from 'lucide-react';
 
 import { Job, Expense, DailyAttendance, AppSettings } from './types';
@@ -37,6 +38,9 @@ import {
   getDaysRemaining,
   addMonths
 } from './utils';
+
+import { db } from './lib/firebase';
+import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 
 // Import Child Components
 import OwnerSelector from './components/OwnerSelector';
@@ -69,57 +73,198 @@ export default function App() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showExportPanel, setShowExportPanel] = useState(false);
 
-  // Load from local storage or initialize with sample data
+  // Toast notifications & custom confirm state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   useEffect(() => {
+    const handleToastEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ message: string; type?: 'success' | 'error' | 'info' }>;
+      if (customEvent.detail) {
+        const msg = customEvent.detail.message || '';
+        let type: 'success' | 'error' | 'info' = 'success';
+        if (
+          msg.toLowerCase().includes('denied') ||
+          msg.toLowerCase().includes('authorized') ||
+          msg.toLowerCase().includes('please enter') ||
+          msg.toLowerCase().includes('invalid') ||
+          msg.toLowerCase().includes('error')
+        ) {
+          type = 'error';
+        }
+        setToast({ message: msg, type });
+      }
+    };
+
+    window.addEventListener('show-toast', handleToastEvent);
+    return () => {
+      window.removeEventListener('show-toast', handleToastEvent);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  // Load from local storage or initialize with sample data & Firebase subscriptions
+  useEffect(() => {
+    // 1. Initialize Settings synchronously from local storage (to avoid splash/flicker)
+    const savedSettings = localStorage.getItem('tankro_settings');
+    let initialSettings = DEFAULT_SETTINGS;
+    if (savedSettings) {
+      try {
+        initialSettings = JSON.parse(savedSettings);
+        setSettings(initialSettings);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Load other states from local storage as offline fallback first
     const savedJobs = localStorage.getItem('tankro_jobs');
     const savedExpenses = localStorage.getItem('tankro_expenses');
     const savedAttendance = localStorage.getItem('tankro_attendance');
     const savedNotes = localStorage.getItem('tankro_customer_notes');
-    const savedSettings = localStorage.getItem('tankro_settings');
 
-    if (savedJobs) {
-      setJobs(JSON.parse(savedJobs));
-    } else {
-      setJobs(SAMPLE_JOBS);
-      localStorage.setItem('tankro_jobs', JSON.stringify(SAMPLE_JOBS));
-    }
+    if (savedJobs) setJobs(JSON.parse(savedJobs));
+    if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+    if (savedAttendance) setAttendanceRecords(JSON.parse(savedAttendance));
+    if (savedNotes) setCustomerNotes(JSON.parse(savedNotes));
 
-    if (savedExpenses) {
-      setExpenses(JSON.parse(savedExpenses));
-    } else {
-      setExpenses(SAMPLE_EXPENSES);
-      localStorage.setItem('tankro_expenses', JSON.stringify(SAMPLE_EXPENSES));
-    }
+    // 2. Setup real-time Firebase subscriptions
+    const unsubscribeJobs = onSnapshot(collection(db, 'jobs'), (snapshot) => {
+      const items: Job[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as Job);
+      });
+      // Sort: newest first
+      items.sort((a, b) => b.id.localeCompare(a.id));
 
-    if (savedAttendance) {
-      setAttendanceRecords(JSON.parse(savedAttendance));
-    } else {
-      setAttendanceRecords(SAMPLE_ATTENDANCE);
-      localStorage.setItem('tankro_attendance', JSON.stringify(SAMPLE_ATTENDANCE));
-    }
+      if (snapshot.empty) {
+        // Seed Firestore if empty
+        const initialJobs = savedJobs ? JSON.parse(savedJobs) : SAMPLE_JOBS;
+        initialJobs.forEach((j: Job) => {
+          setDoc(doc(db, 'jobs', j.id), j).catch(err => console.error(err));
+        });
+        setJobs(initialJobs);
+        localStorage.setItem('tankro_jobs', JSON.stringify(initialJobs));
+      } else {
+        setJobs(items);
+        localStorage.setItem('tankro_jobs', JSON.stringify(items));
+      }
+    }, (error) => {
+      console.error("Error listening to jobs:", error);
+    });
 
-    if (savedNotes) {
-      setCustomerNotes(JSON.parse(savedNotes));
-    } else {
-      // Seed some starting customer notes based on unique customers
-      const startingNotes: Record<string, string> = {
-        'Karthik Raja||9842512345': 'sump is near back gate, prefers morning service',
-        'Senthil Kumar||9786432101': 'has 2 tanks on rooftop, ladder needed',
-        'Anitha Srinivasan||9443212345': 'very friendly customer, has active borewell',
-      };
-      setCustomerNotes(startingNotes);
-      localStorage.setItem('tankro_customer_notes', JSON.stringify(startingNotes));
-    }
+    const unsubscribeExpenses = onSnapshot(collection(db, 'expenses'), (snapshot) => {
+      const items: Expense[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as Expense);
+      });
+      items.sort((a, b) => b.id.localeCompare(a.id));
 
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
-    } else {
-      setSettings(DEFAULT_SETTINGS);
-      localStorage.setItem('tankro_settings', JSON.stringify(DEFAULT_SETTINGS));
-    }
+      if (snapshot.empty) {
+        // Seed Firestore if empty
+        const initialExpenses = savedExpenses ? JSON.parse(savedExpenses) : SAMPLE_EXPENSES;
+        initialExpenses.forEach((e: Expense) => {
+          setDoc(doc(db, 'expenses', e.id), e).catch(err => console.error(err));
+        });
+        setExpenses(initialExpenses);
+        localStorage.setItem('tankro_expenses', JSON.stringify(initialExpenses));
+      } else {
+        setExpenses(items);
+        localStorage.setItem('tankro_expenses', JSON.stringify(items));
+      }
+    }, (error) => {
+      console.error("Error listening to expenses:", error);
+    });
+
+    const unsubscribeAttendance = onSnapshot(collection(db, 'attendance'), (snapshot) => {
+      const items: DailyAttendance[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as DailyAttendance);
+      });
+      items.sort((a, b) => b.date.localeCompare(a.date));
+
+      if (snapshot.empty) {
+        // Seed Firestore if empty
+        const initialAttendance = savedAttendance ? JSON.parse(savedAttendance) : SAMPLE_ATTENDANCE;
+        initialAttendance.forEach((a: DailyAttendance) => {
+          setDoc(doc(db, 'attendance', a.id), a).catch(err => console.error(err));
+        });
+        setAttendanceRecords(initialAttendance);
+        localStorage.setItem('tankro_attendance', JSON.stringify(initialAttendance));
+      } else {
+        setAttendanceRecords(items);
+        localStorage.setItem('tankro_attendance', JSON.stringify(items));
+      }
+    }, (error) => {
+      console.error("Error listening to attendance:", error);
+    });
+
+    const unsubscribeCustomerNotes = onSnapshot(collection(db, 'customerNotes'), (snapshot) => {
+      const notesDict: Record<string, string> = {};
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        notesDict[doc.id] = data.text || '';
+      });
+
+      if (snapshot.empty) {
+        // Seed Firestore if empty
+        const startingNotes: Record<string, string> = savedNotes ? JSON.parse(savedNotes) : {
+          'Karthik Raja||9842512345': 'sump is near back gate, prefers morning service',
+          'Senthil Kumar||9786432101': 'has 2 tanks on rooftop, ladder needed',
+          'Anitha Srinivasan||9443212345': 'very friendly customer, has active borewell',
+        };
+        Object.entries(startingNotes).forEach(([key, val]) => {
+          setDoc(doc(db, 'customerNotes', key), { id: key, text: val }).catch(err => console.error(err));
+        });
+        setCustomerNotes(startingNotes);
+        localStorage.setItem('tankro_customer_notes', JSON.stringify(startingNotes));
+      } else {
+        setCustomerNotes(notesDict);
+        localStorage.setItem('tankro_customer_notes', JSON.stringify(notesDict));
+      }
+    }, (error) => {
+      console.error("Error listening to customer notes:", error);
+    });
+
+    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'wages'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.dailyWages) {
+          setSettings((prev) => {
+            const merged = {
+              ...prev,
+              dailyWages: data.dailyWages
+            };
+            localStorage.setItem('tankro_settings', JSON.stringify(merged));
+            return merged;
+          });
+        }
+      } else {
+        const defaultWages = initialSettings.dailyWages || DEFAULT_SETTINGS.dailyWages;
+        setDoc(doc(db, 'settings', 'wages'), { dailyWages: defaultWages }).catch(err => console.error(err));
+      }
+    }, (error) => {
+      console.error("Error listening to settings:", error);
+    });
+
+    return () => {
+      unsubscribeJobs();
+      unsubscribeExpenses();
+      unsubscribeAttendance();
+      unsubscribeCustomerNotes();
+      unsubscribeSettings();
+    };
   }, []);
 
-  // Sync state helpers
+  // Sync state helpers (with local cache + remote firestore updates)
   const saveJobsToStore = (updatedJobs: Job[]) => {
     setJobs(updatedJobs);
     localStorage.setItem('tankro_jobs', JSON.stringify(updatedJobs));
@@ -139,11 +284,13 @@ export default function App() {
     const updatedNotes = { ...customerNotes, [key]: notes };
     setCustomerNotes(updatedNotes);
     localStorage.setItem('tankro_customer_notes', JSON.stringify(updatedNotes));
+    setDoc(doc(db, 'customerNotes', key), { id: key, text: notes }).catch(err => console.error(err));
   };
 
   const saveSettingsToStore = (newSettings: AppSettings) => {
     setSettings(newSettings);
     localStorage.setItem('tankro_settings', JSON.stringify(newSettings));
+    setDoc(doc(db, 'settings', 'wages'), { dailyWages: newSettings.dailyWages }).catch(err => console.error(err));
   };
 
   // Owner Selection handler
@@ -153,28 +300,33 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    if (confirm('Are you sure you want to log out / change user?')) {
-      const updated = { ...settings, currentOwner: null as any, currentUserRole: null as any };
-      saveSettingsToStore(updated);
-    }
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = () => {
+    const updated = { ...settings, currentOwner: null as any, currentUserRole: null as any };
+    saveSettingsToStore(updated);
+    setShowLogoutConfirm(false);
   };
 
   // JOB MANAGEMENT CRUD
   const handleAddJob = (job: Job) => {
     const updated = [job, ...jobs];
     saveJobsToStore(updated);
+    setDoc(doc(db, 'jobs', job.id), job).catch(err => console.error(err));
     // Show invoice instantly for convenience!
     setSelectedInvoiceJob(job);
     setRecordsSubTab('jobs');
     // Notify success
-    alert('Job successfully registered! (பணி வெற்றிகரமாக பதிவு செய்யப்பட்டது!)');
+    alert('Job successfully registered!');
   };
 
   const handleEditJobComplete = (updatedJob: Job) => {
     const updated = jobs.map((j) => (j.id === updatedJob.id ? updatedJob : j));
     saveJobsToStore(updated);
+    setDoc(doc(db, 'jobs', updatedJob.id), updatedJob).catch(err => console.error(err));
     setEditingJob(null);
-    alert('Job updated successfully! (பணி விவரங்கள் புதுப்பிக்கப்பட்டது!)');
+    alert('Job updated successfully!');
     setRecordsSubTab('jobs');
     setActiveTab('records');
   };
@@ -182,19 +334,26 @@ export default function App() {
   const handleDeleteJob = (jobId: string) => {
     const updated = jobs.filter((j) => j.id !== jobId);
     saveJobsToStore(updated);
+    deleteDoc(doc(db, 'jobs', jobId)).catch(err => console.error(err));
+    alert('Job record successfully deleted!');
   };
 
   const handleMarkJobAsPaid = (jobId: string) => {
     const updated = jobs.map((j) => (j.id === jobId ? { ...j, paymentStatus: 'Paid' as const } : j));
     saveJobsToStore(updated);
-    alert('Payment marked as Paid! (தொகை பெறப்பட்டது!)');
+    const targetJob = jobs.find((j) => j.id === jobId);
+    if (targetJob) {
+      setDoc(doc(db, 'jobs', jobId), { ...targetJob, paymentStatus: 'Paid' as const }).catch(err => console.error(err));
+    }
+    alert('Payment marked as Paid!');
   };
 
   // EXPENSE MANAGEMENT CRUD
   const handleAddExpense = (expense: Expense) => {
     const updated = [expense, ...expenses];
     saveExpensesToStore(updated);
-    alert('Expense successfully logged! (செலவு பதிவு செய்யப்பட்டது!)');
+    setDoc(doc(db, 'expenses', expense.id), expense).catch(err => console.error(err));
+    alert('Expense successfully logged!');
     setRecordsSubTab('expenses');
     setActiveTab('records');
   };
@@ -202,6 +361,7 @@ export default function App() {
   const handleEditExpenseComplete = (updatedExpense: Expense) => {
     const updated = expenses.map((e) => (e.id === updatedExpense.id ? updatedExpense : e));
     saveExpensesToStore(updated);
+    setDoc(doc(db, 'expenses', updatedExpense.id), updatedExpense).catch(err => console.error(err));
     setEditingExpense(null);
     alert('Expense updated successfully!');
     setRecordsSubTab('expenses');
@@ -211,6 +371,8 @@ export default function App() {
   const handleDeleteExpense = (expenseId: string) => {
     const updated = expenses.filter((e) => e.id !== expenseId);
     saveExpensesToStore(updated);
+    deleteDoc(doc(db, 'expenses', expenseId)).catch(err => console.error(err));
+    alert('Expense successfully deleted!');
   };
 
   // ATTENDANCE SAVER
@@ -224,6 +386,7 @@ export default function App() {
       updated = [dailyRecord, ...attendanceRecords];
     }
     saveAttendanceToStore(updated);
+    setDoc(doc(db, 'attendance', dailyRecord.id), dailyRecord).catch(err => console.error(err));
   };
 
   // TRACE ACTIVE SUBSCRIPTIONS & OVERDUES (Alert Card logic)
@@ -431,6 +594,7 @@ export default function App() {
     // Inject and save this job in state
     const updated = [completedJob, ...jobs];
     saveJobsToStore(updated);
+    setDoc(doc(db, 'jobs', completedJob.id), completedJob).catch(err => console.error(err));
   };
 
   // If no owner is logged in yet, prompt selection
@@ -446,7 +610,7 @@ export default function App() {
         <div className="p-6 flex items-center gap-3 border-b border-slate-100">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 shadow-md">
             <img
-              src="/src/assets/images/tankro_logo_1784013728692.jpg"
+              src="/src/assets/images/tankro_logo_new_1784019299723.jpg"
               alt="Tankro Logo"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -454,7 +618,7 @@ export default function App() {
           </div>
           <div>
             <span className="font-bold text-sm tracking-tight text-blue-900 font-display block leading-none">Tankro Sathy</span>
-            <span className="text-[10px] text-blue-600 font-bold mt-1 block">டேங்க்ரோ சத்தி</span>
+            <span className="text-[10px] text-blue-600 font-bold mt-1 block">Tankro Sathy</span>
           </div>
         </div>
 
@@ -596,7 +760,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 shadow-sm">
               <img
-                src="/src/assets/images/tankro_logo_1784013728692.jpg"
+                src="/src/assets/images/tankro_logo_new_1784019299723.jpg"
                 alt="Tankro Logo"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -607,7 +771,7 @@ export default function App() {
                 Tankro Sathy
               </h1>
               <p className="text-[8px] text-blue-600 font-bold leading-none mt-0.5">
-                சத்தி • கோபி • புஞ்சை புளியம்பட்டி
+                Sathy • Gobi • Punjai Puliampatti
               </p>
             </div>
           </div>
@@ -643,7 +807,7 @@ export default function App() {
               id="desktop-header-add-job"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              Add Job (புதிய வேலை)
+              Add Job
             </button>
             <button
               onClick={() => {
@@ -675,7 +839,7 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
                   <div>
                     <h2 className="text-base font-bold text-slate-800">
-                      Hello, {settings.currentOwner}! (வணக்கம்)
+                      Hello, {settings.currentOwner}!
                     </h2>
                     <p className="text-xs text-slate-500">
                       Ready for today's tank cleanings? Keep tracking daily jobs.
@@ -702,7 +866,7 @@ export default function App() {
                         <AlertCircle className="w-5 h-5 text-white animate-bounce" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm">Recurring Services Due soon! (தொடர் சேவை)</h4>
+                        <h4 className="font-bold text-sm">Recurring Services Due Soon!</h4>
                         <p className="text-xs text-amber-100 mt-0.5">
                           {subAlerts.overdueCount > 0 && `${subAlerts.overdueCount} OVERDUE. `}
                           {subAlerts.dueSoonCount > 0 && `${subAlerts.dueSoonCount} due within 7 days.`} Tap to view and schedule.
@@ -744,7 +908,7 @@ export default function App() {
 
                 {/* Quick Actions Buttons Row */}
                 <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                  <h3 className="font-bold text-slate-800 text-xs">Quick Actions (விரைவுச் செயல்பாடுகள்)</h3>
+                  <h3 className="font-bold text-slate-800 text-xs">Quick Actions</h3>
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       onClick={() => {
@@ -757,7 +921,6 @@ export default function App() {
                     >
                       <PlusCircle className="w-5 h-5 mb-2" />
                       <span className="text-[10px]">Add New Job</span>
-                      <span className="text-[8px] text-blue-500/80 font-normal">வேலை பதிவு</span>
                     </button>
 
                     <button
@@ -771,7 +934,6 @@ export default function App() {
                     >
                       <Wallet className="w-5 h-5 mb-2" />
                       <span className="text-[10px]">Add Expense</span>
-                      <span className="text-[8px] text-red-500/80 font-normal">செலவு பதிவு</span>
                     </button>
 
                     <button
@@ -783,7 +945,6 @@ export default function App() {
                     >
                       <UserCheck className="w-5 h-5 mb-2 text-slate-600" />
                       <span className="text-[10px]">Attendance</span>
-                      <span className="text-[8px] text-slate-500/80 font-normal">ஆட்கள் வருகை</span>
                     </button>
                   </div>
                 </div>
@@ -809,7 +970,7 @@ export default function App() {
                 <div className="pt-2">
                   <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-1.5">
                     <TrendingUp className="w-4 h-4 text-blue-500" />
-                    Analytics Report Dashboard (வணிக பகுப்பாய்வு)
+                    Analytics Report Dashboard
                   </h2>
                   <ReportsPage
                     jobs={jobs}
@@ -888,7 +1049,7 @@ export default function App() {
                     }`}
                     id="subtab-job-form"
                   >
-                    Jobs Form (பணி)
+                    Jobs Form
                   </button>
                   <button
                     onClick={() => {
@@ -900,7 +1061,7 @@ export default function App() {
                     }`}
                     id="subtab-expense-form"
                   >
-                    Expenses Form (செலவு)
+                    Expenses Form
                   </button>
                 </div>
 
@@ -941,7 +1102,7 @@ export default function App() {
                 <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
                   <h2 className="text-base font-bold text-slate-800 flex items-center gap-1.5">
                     <Database className="w-5 h-5 text-blue-500" />
-                    Database Browser (பணி / செலவு பதிவுகள்)
+                    Database Browser (Jobs / Expenses Records)
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Edit, delete or view invoices of logged entries
@@ -1115,6 +1276,77 @@ export default function App() {
           onClose={() => setSelectedInvoiceJob(null)}
         />
       )}
+
+      {/* Beautiful Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none w-full max-w-sm px-4"
+            id="toast-notification-banner"
+          >
+            <div className={`flex items-center gap-3 p-4 rounded-2xl shadow-xl border text-xs font-bold leading-relaxed pointer-events-auto ${
+              toast.type === 'error'
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : toast.type === 'info'
+                ? 'bg-blue-50 border-blue-200 text-blue-800'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            }`}>
+              {toast.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+              ) : toast.type === 'info' ? (
+                <Info className="w-5 h-5 text-blue-500 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+              )}
+              <span className="flex-1">{toast.message}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Beautiful Custom Logout Confirm Dialog */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" id="logout-confirm-overlay">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-100 shadow-2xl text-center space-y-4"
+              id="logout-confirm-box"
+            >
+              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-100">
+                <LogOut className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-800 text-sm">Logout / Switch User?</h3>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  Are you sure you want to exit your session? You can easily log back in as any Owner or Manager anytime.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-[10px] font-bold border border-slate-200 transition-all cursor-pointer"
+                  id="logout-cancel-btn"
+                >
+                  No, Keep Session
+                </button>
+                <button
+                  onClick={handleConfirmLogout}
+                  className="py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[10px] font-bold shadow-md shadow-red-100 transition-all cursor-pointer"
+                  id="logout-confirm-btn"
+                >
+                  Yes, Log Out
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

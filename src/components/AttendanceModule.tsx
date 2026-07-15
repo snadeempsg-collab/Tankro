@@ -30,16 +30,16 @@ export default function AttendanceModule({
     Nafees: 'Present',
     Akram: 'Present',
   });
-  const [wages, setWages] = useState<Record<string, number>>({
+  const [wages, setWages] = useState<Record<string, number | ''>>({
     Althaf: settings.dailyWages.Althaf || 300,
     Nafees: settings.dailyWages.Nafees || 400,
     Akram: settings.dailyWages.Akram || 500,
   });
 
   // Settings state in terms of Monthly Salaries (computed as dailyWage * 30)
-  const [althafMonthly, setAlthafMonthly] = useState((settings.dailyWages.Althaf || 300) * 30);
-  const [nafeesMonthly, setNafeesMonthly] = useState((settings.dailyWages.Nafees || 400) * 30);
-  const [akramMonthly, setAkramMonthly] = useState((settings.dailyWages.Akram || 500) * 30);
+  const [althafMonthly, setAlthafMonthly] = useState<number | ''>((settings.dailyWages.Althaf || 300) * 30);
+  const [nafeesMonthly, setNafeesMonthly] = useState<number | ''>((settings.dailyWages.Nafees || 400) * 30);
+  const [akramMonthly, setAkramMonthly] = useState<number | ''>((settings.dailyWages.Akram || 500) * 30);
   const [showSettings, setShowSettings] = useState(false);
 
   // History / Filter State
@@ -78,27 +78,27 @@ export default function AttendanceModule({
   // Handle setting updates (Monthly Salary system)
   const saveSalarySettings = () => {
     if (settings.currentUserRole === 'Manager') {
-      alert('Access Denied: Managers cannot edit salary settings! (மேலாளர்களுக்கு அனுமதி இல்லை!)');
+      alert('Access Denied: Managers cannot edit salary settings!');
       return;
     }
 
     const updatedSettings: AppSettings = {
       ...settings,
       dailyWages: {
-        Althaf: Math.round(althafMonthly / 30),
-        Nafees: Math.round(nafeesMonthly / 30),
-        Akram: Math.round(akramMonthly / 30),
+        Althaf: Math.round(Number(althafMonthly) / 30),
+        Nafees: Math.round(Number(nafeesMonthly) / 30),
+        Akram: Math.round(Number(akramMonthly) / 30),
       },
     };
 
     onUpdateSettings(updatedSettings);
     setShowSettings(false);
-    alert('Monthly salaries updated successfully! (மாதாந்திர சம்பளம் புதுப்பிக்கப்பட்டது!)');
+    alert('Monthly salaries updated successfully!');
 
     setWages({
-      Althaf: Math.round(althafMonthly / 30),
-      Nafees: Math.round(nafeesMonthly / 30),
-      Akram: Math.round(akramMonthly / 30),
+      Althaf: Math.round(Number(althafMonthly) / 30),
+      Nafees: Math.round(Number(nafeesMonthly) / 30),
+      Akram: Math.round(Number(akramMonthly) / 30),
     });
   };
 
@@ -121,7 +121,7 @@ export default function AttendanceModule({
     });
   };
 
-  const handleCustomWageChange = (staff: string, amount: number) => {
+  const handleCustomWageChange = (staff: string, amount: number | '') => {
     if (settings.currentUserRole === 'Manager') {
       alert('Access Denied: Managers are not authorized to modify computed daily wages manually.');
       return;
@@ -134,19 +134,24 @@ export default function AttendanceModule({
 
   const handleSaveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const sanitizedWages: Record<string, number> = {};
+    Object.entries(wages).forEach(([key, val]) => {
+      sanitizedWages[key] = Number(val) || 0;
+    });
+
     const attendanceData: DailyAttendance = {
       id: date,
       date,
       records,
-      wages,
+      wages: sanitizedWages,
     };
     onSaveAttendance(attendanceData);
-    alert(`Attendance saved for ${date}! (வருகை சேமிக்கப்பட்டது!)`);
+    alert(`Attendance saved for ${date}!`);
   };
 
   const handleSettingsClick = () => {
     if (settings.currentUserRole === 'Manager') {
-      alert('Access Denied: Only Owners (Nadeem & Yuvaraj) can configure monthly salary settings. (நிர்வாகிகள் மட்டுமே சம்பள விகிதங்களை மாற்ற முடியும்!)');
+      alert('Access Denied: Only Owners (Nadeem & Yuvaraj) can configure monthly salary settings.');
       return;
     }
     setShowSettings(!showSettings);
@@ -205,7 +210,7 @@ export default function AttendanceModule({
               Staff Attendance & Salaries
             </h2>
             <p className="text-xs text-blue-100">
-              மாதாந்திர ஊழியர் சம்பளக் கணக்கு (Monthly Wage System)
+              Monthly Wage System
             </p>
           </div>
           <button
@@ -229,7 +234,7 @@ export default function AttendanceModule({
             }`}
             id="tab-mark-attendance"
           >
-            Mark Daily Attendance (வருகை பதிவு)
+            Mark Daily Attendance
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -238,7 +243,7 @@ export default function AttendanceModule({
             }`}
             id="tab-attendance-summary"
           >
-            Payroll Summary (மாதச் சம்பளச் சுருக்கம்)
+            Payroll Summary
           </button>
         </div>
       </div>
@@ -248,10 +253,10 @@ export default function AttendanceModule({
         <div className="p-5 bg-blue-50 border-b border-blue-100 text-xs text-slate-700 space-y-3">
           <h3 className="font-bold text-slate-800 flex items-center gap-1">
             <Settings className="w-4 h-4 text-blue-600" />
-            Set Monthly Salaries (மாதாந்திர சம்பள விவரம்)
+            Set Monthly Salaries
           </h3>
           <p className="text-[10px] text-slate-500 leading-normal">
-            Enter the monthly wage. The system automatically divides by 30 to get the daily attendance equivalent.
+            Enter the monthly wage contract value for each staff member.
           </p>
           <div className="space-y-3">
             {[
@@ -270,15 +275,12 @@ export default function AttendanceModule({
                     type="number"
                     value={staff.state}
                     onChange={(e) => {
-                      const v = Math.max(0, parseInt(e.target.value) || 0);
-                      staff.setter(v);
+                      const val = e.target.value;
+                      staff.setter(val === '' ? '' : Math.max(0, parseInt(val) || 0));
                     }}
                     className="w-24 bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-bold text-center text-slate-800"
                     id={`wage-settings-${staff.name.toLowerCase()}`}
                   />
-                  <div className="text-[9px] text-slate-400 font-semibold leading-tight text-right w-16">
-                    ₹{Math.round(staff.state / 30)}/day
-                  </div>
                 </div>
               </div>
             ))}
@@ -313,16 +315,16 @@ export default function AttendanceModule({
               <div>
                 <p className="font-bold text-sky-800">Monthly Contract Salaries:</p>
                 <p className="text-[10px] text-sky-700 leading-relaxed mt-0.5">
-                  • <strong>Akram</strong>: {formatInRupees((settings.dailyWages.Akram || 500) * 30)}/mo (~₹{settings.dailyWages.Akram || 500}/day)<br />
-                  • <strong>Nafees</strong>: {formatInRupees((settings.dailyWages.Nafees || 400) * 30)}/mo (~₹{settings.dailyWages.Nafees || 400}/day)<br />
-                  • <strong>Althaf</strong>: {formatInRupees((settings.dailyWages.Althaf || 300) * 30)}/mo (~₹{settings.dailyWages.Althaf || 300}/day)
+                  • <strong>Akram</strong>: {formatInRupees((settings.dailyWages.Akram || 500) * 30)}/month<br />
+                  • <strong>Nafees</strong>: {formatInRupees((settings.dailyWages.Nafees || 400) * 30)}/month<br />
+                  • <strong>Althaf</strong>: {formatInRupees((settings.dailyWages.Althaf || 300) * 30)}/month
                 </p>
               </div>
             </div>
 
             <div>
               <label className="block text-slate-500 font-semibold mb-1">
-                Select Date for Attendance (வருகை தேதி):
+                Select Date for Attendance:
               </label>
               <input
                 type="date"
@@ -337,7 +339,7 @@ export default function AttendanceModule({
             <div className="space-y-4 pt-2">
               {['Althaf', 'Nafees', 'Akram'].map((staff) => {
                 const currentStatus = records[staff] || 'Present';
-                const currentWage = wages[staff] || 0;
+                const currentWage = wages[staff] !== undefined ? wages[staff] : 0;
                 const dailyRate = settings.dailyWages[staff] || (staff === 'Akram' ? 500 : staff === 'Nafees' ? 400 : 300);
 
                 return (
@@ -355,23 +357,9 @@ export default function AttendanceModule({
                         <div>
                           <p className="font-bold text-slate-800 text-sm">{staff}</p>
                           <p className="text-[10px] text-slate-400">
-                            Contract Rate: {formatInRupees(dailyRate * 30)}/month (~{formatInRupees(dailyRate)}/day)
+                            Contract Rate: {formatInRupees(dailyRate * 30)}/month
                           </p>
                         </div>
-                      </div>
-                      {/* Current Wage Display / Editable for Owner */}
-                      <div className="flex items-center gap-1 bg-white border border-slate-200 px-2.5 py-1 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-semibold">Today's Pay: ₹</span>
-                        <input
-                          type="number"
-                          value={currentWage}
-                          disabled={settings.currentUserRole === 'Manager'}
-                          onChange={(e) => handleCustomWageChange(staff, Math.max(0, parseInt(e.target.value) || 0))}
-                          className={`w-12 bg-transparent text-center font-bold text-slate-800 focus:outline-none ${
-                            settings.currentUserRole === 'Manager' ? 'text-slate-400 cursor-not-allowed' : ''
-                          }`}
-                          id={`wage-input-${staff.toLowerCase()}`}
-                        />
                       </div>
                     </div>
 
@@ -409,7 +397,7 @@ export default function AttendanceModule({
               className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-blue-100 transition-all cursor-pointer mt-4"
               id="save-attendance-btn"
             >
-              Save Attendance (தேதி வருகையைச் சேமி)
+              Save Attendance
             </button>
           </form>
         ) : (
@@ -417,7 +405,7 @@ export default function AttendanceModule({
           <div className="space-y-6">
             {/* Filter controls */}
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
-              <span className="font-semibold text-slate-600">Select Month (சம்பள மாதம்):</span>
+              <span className="font-semibold text-slate-600">Select Month:</span>
               <input
                 type="month"
                 value={historyMonth}
@@ -455,11 +443,11 @@ export default function AttendanceModule({
                     <div className="grid grid-cols-4 gap-2 text-center text-[10px] pt-1.5 border-t border-slate-100">
                       <div className="bg-green-50/70 p-1.5 rounded-lg border border-green-100 text-green-700">
                         <span className="block font-bold text-xs">{stat.present}</span>
-                        Present (வந்தவை)
+                        Present
                       </div>
                       <div className="bg-amber-50/70 p-1.5 rounded-lg border border-amber-100 text-amber-700">
                         <span className="block font-bold text-xs">{stat.halfDay}</span>
-                        Half-Day (அரை நாள்)
+                        Half-Day
                       </div>
                       <div className="bg-red-50/70 p-1.5 rounded-lg border border-red-100 text-red-700">
                         <span className="block font-bold text-xs">{stat.absent}</span>
@@ -471,7 +459,7 @@ export default function AttendanceModule({
                       </div>
                     </div>
                     <div className="text-[9px] text-slate-400 mt-2 text-right">
-                      Salary = (Daily equivalent ₹{Math.round(stat.configuredMonthly / 30)} × {stat.present + stat.halfDay * 0.5} effective days)
+                      Salary calculated based on {stat.present + stat.halfDay * 0.5} effective days out of 30
                     </div>
                   </div>
                 ))}

@@ -31,39 +31,41 @@ export default function JobForm({
   const [customerAddress, setCustomerAddress] = useState('');
   const [area, setArea] = useState('Sathyamangalam');
   const [otherAreaText, setOtherAreaText] = useState('');
-  const [tankCapacity, setTankCapacity] = useState<number>(1000);
-  const [numTanks, setNumTanks] = useState<number>(1);
-  const [distance, setDistance] = useState<number>(0);
+  const [tankCapacity, setTankCapacity] = useState<number | ''>(1000);
+  const [numTanks, setNumTanks] = useState<number | ''>(1);
+  const [distance, setDistance] = useState<number | ''>(0);
   const [staffAssigned, setStaffAssigned] = useState<string[]>(['Althaf']);
   const [jobType, setJobType] = useState<'One-Time' | 'Subscription'>('One-Time');
   const [subscriptionInterval, setSubscriptionInterval] = useState<'3 months' | '6 months' | 'Custom'>('3 months');
-  const [customIntervalMonths, setCustomIntervalMonths] = useState<number>(1);
+  const [customIntervalMonths, setCustomIntervalMonths] = useState<number | ''>(1);
   const [gstApplicable, setGstApplicable] = useState<boolean>(false);
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Pending'>('Paid');
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Bank Transfer'>('UPI');
   const [notes, setNotes] = useState('');
   const [isSlabOverridden, setIsSlabOverridden] = useState<boolean>(false);
-  const [manualSlabRate, setManualSlabRate] = useState<number>(800);
+  const [manualSlabRate, setManualSlabRate] = useState<number | ''>(800);
 
   // States for individual tank capacities
   const [useIndividualTanks, setUseIndividualTanks] = useState<boolean>(false);
-  const [individualTanks, setIndividualTanks] = useState<number[]>([]);
-  const [individualTanksManualRates, setIndividualTanksManualRates] = useState<number[]>([]);
+  const [individualTanks, setIndividualTanks] = useState<(number | '')[]>([]);
+  const [individualTanksManualRates, setIndividualTanksManualRates] = useState<(number | '')[]>([]);
 
   // States for travel expense override
   const [isDistanceOverridden, setIsDistanceOverridden] = useState<boolean>(false);
-  const [manualDistanceCharge, setManualDistanceCharge] = useState<number>(0);
+  const [manualDistanceCharge, setManualDistanceCharge] = useState<number | ''>(0);
 
   // Sync individual tanks array with numTanks and tankCapacity
   useEffect(() => {
+    const tanksCount = Number(numTanks) || 0;
+    const capacityValue = Number(tankCapacity) || 0;
     setIndividualTanks((prev) => {
       const next = [...prev];
-      if (next.length < numTanks) {
-        while (next.length < numTanks) {
-          next.push(tankCapacity);
+      if (next.length < tanksCount) {
+        while (next.length < tanksCount) {
+          next.push(capacityValue);
         }
-      } else if (next.length > numTanks) {
-        next.splice(numTanks);
+      } else if (next.length > tanksCount) {
+        next.splice(tanksCount);
       }
       return next;
     });
@@ -71,25 +73,28 @@ export default function JobForm({
 
   // Sync individual manual rates array with numTanks
   useEffect(() => {
+    const tanksCount = Number(numTanks) || 0;
+    const capacityValue = Number(tankCapacity) || 0;
     setIndividualTanksManualRates((prev) => {
       const next = [...prev];
-      if (next.length < numTanks) {
-        while (next.length < numTanks) {
-          const cap = useIndividualTanks ? (individualTanks[next.length] || tankCapacity) : tankCapacity;
+      if (next.length < tanksCount) {
+        while (next.length < tanksCount) {
+          const rawCap = useIndividualTanks ? (individualTanks[next.length] || capacityValue) : capacityValue;
+          const cap = Number(rawCap) || 0;
           const defaultRate = getSlabRate(cap);
-          next.push(manualSlabRate !== undefined ? manualSlabRate : defaultRate);
+          next.push(manualSlabRate !== '' && manualSlabRate !== undefined ? manualSlabRate : defaultRate);
         }
-      } else if (next.length > numTanks) {
-        next.splice(numTanks);
+      } else if (next.length > tanksCount) {
+        next.splice(tanksCount);
       }
       return next;
     });
-  }, [numTanks, useIndividualTanks, individualTanks, tankCapacity]);
+  }, [numTanks, useIndividualTanks, individualTanks, tankCapacity, manualSlabRate]);
 
   // Keep manual slab rate in sync with capacity's default rate if override is off
   useEffect(() => {
     if (!isSlabOverridden) {
-      setManualSlabRate(getSlabRate(tankCapacity));
+      setManualSlabRate(getSlabRate(Number(tankCapacity) || 0));
     }
   }, [tankCapacity, isSlabOverridden]);
 
@@ -216,7 +221,7 @@ export default function JobForm({
     e.preventDefault();
 
     if (!customerName.trim()) {
-      alert('Please enter a Customer Name / வாடிக்கையாளர் பெயர்');
+      alert('Please enter a Customer Name');
       return;
     }
     if (!customerPhone.trim() || customerPhone.length < 10) {
@@ -228,7 +233,7 @@ export default function JobForm({
       return;
     }
     if (staffAssigned.length === 0) {
-      alert('Please assign at least one staff member (ஆட்களை தேர்வு செய்க)');
+      alert('Please assign at least one staff member');
       return;
     }
 
@@ -302,7 +307,7 @@ export default function JobForm({
         <div>
           <h2 className="text-xl font-bold font-display flex items-center gap-2">
             <PlusCircle className="w-5 h-5" />
-            {initialJobToEdit ? 'Edit Job Entry' : 'New Job Entry (புதிய பணி)'}
+            {initialJobToEdit ? 'Edit Job Entry' : 'New Job Entry'}
           </h2>
           <p className="text-xs text-blue-100 mt-0.5">
             Log water tank cleaning work
@@ -324,7 +329,7 @@ export default function JobForm({
         {/* Date Field */}
         <div>
           <label className="block text-slate-500 font-semibold mb-1">
-            Job Date (தேதி):
+            Job Date:
           </label>
           <input
             type="date"
@@ -339,7 +344,7 @@ export default function JobForm({
         {/* Customer Section */}
         <div className="relative">
           <label className="block text-slate-500 font-semibold mb-1">
-            Customer Name (பெயர்):
+            Customer Name:
           </label>
           <div className="relative">
             <span className="absolute left-3 top-3 text-slate-400">
@@ -384,7 +389,7 @@ export default function JobForm({
           {/* Phone Field */}
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Customer Phone Number (கைபேசி):
+              Customer Phone Number:
             </label>
             <div className="relative">
               <span className="absolute left-3 top-3 text-slate-400">
@@ -405,7 +410,7 @@ export default function JobForm({
           {/* Area Dropdown */}
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Service Area (வட்டம்):
+              Service Area:
             </label>
             <select
               value={area}
@@ -413,10 +418,10 @@ export default function JobForm({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-800 cursor-pointer"
               id="job-cust-area"
             >
-              <option value="Sathyamangalam">Sathyamangalam (சத்தியமங்கலம்)</option>
-              <option value="Gobichettipalayam">Gobichettipalayam (கோபிசெட்டிபாளையம்)</option>
-              <option value="Punjai Puliambatti">Punjai Puliambatti (புஞ்சை புளியம்பட்டி)</option>
-              <option value="Other">Other (இதர பகுதி)</option>
+              <option value="Sathyamangalam">Sathyamangalam</option>
+              <option value="Gobichettipalayam">Gobichettipalayam</option>
+              <option value="Punjai Puliambatti">Punjai Puliambatti</option>
+              <option value="Other">Other Area</option>
             </select>
           </div>
         </div>
@@ -425,7 +430,7 @@ export default function JobForm({
         {area === 'Other' && (
           <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
             <label className="block text-blue-700 font-semibold mb-1">
-              Specify Area Name (ஊர் பெயர்):
+              Specify Area Name:
             </label>
             <input
               type="text"
@@ -442,7 +447,7 @@ export default function JobForm({
         {/* Address */}
         <div>
           <label className="block text-slate-500 font-semibold mb-1">
-            Customer Address (முகவரி):
+            Customer Address:
           </label>
           <div className="relative">
             <span className="absolute left-3 top-3 text-slate-400">
@@ -464,13 +469,16 @@ export default function JobForm({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Tank Capacity (லிட்டர்):
+              Tank Capacity (Liters):
             </label>
             <div className="relative">
               <input
                 type="number"
                 value={tankCapacity || ''}
-                onChange={(e) => setTankCapacity(Math.max(0, parseInt(e.target.value) || 0))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTankCapacity(val === '' ? '' : Math.max(0, parseInt(val) || 0));
+                }}
                 className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
                 placeholder="Liters"
                 id="job-tank-capacity"
@@ -482,12 +490,15 @@ export default function JobForm({
 
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              No. of Tanks (எண்ணிக்கை):
+              No. of Tanks:
             </label>
             <input
               type="number"
               value={numTanks || ''}
-              onChange={(e) => setNumTanks(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => {
+                const val = e.target.value;
+                setNumTanks(val === '' ? '' : Math.max(1, parseInt(val) || 1));
+              }}
               className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
               placeholder="Tanks"
               id="job-num-tanks"
@@ -497,17 +508,19 @@ export default function JobForm({
 
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Distance (தொலைவு - KM):
+              Distance (KM) <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>:
             </label>
             <div className="relative">
               <input
                 type="number"
                 value={distance || ''}
-                onChange={(e) => setDistance(Math.max(0, parseFloat(e.target.value) || 0))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDistance(val === '' ? '' : Math.max(0, parseFloat(val) || 0));
+                }}
                 className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
-                placeholder="KM"
+                placeholder="KM (Optional)"
                 id="job-distance-km"
-                required
               />
               <span className="absolute right-2 top-2.5 text-[10px] text-slate-400 font-bold">KM</span>
             </div>
@@ -525,7 +538,7 @@ export default function JobForm({
                 className="rounded text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
                 id="use-individual-tanks-checkbox"
               />
-              <span>Enter different capacity for each tank (தனித்தனி லிட்டர் அளவு)</span>
+              <span>Enter different capacity for each tank</span>
             </label>
 
             {useIndividualTanks && (
@@ -538,9 +551,10 @@ export default function JobForm({
                         type="number"
                         value={individualTanks[idx] || ''}
                         onChange={(e) => {
-                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                          const val = e.target.value;
+                          const parsed = val === '' ? '' : Math.max(0, parseInt(val) || 0);
                           const updated = [...individualTanks];
-                          updated[idx] = val;
+                          updated[idx] = parsed;
                           setIndividualTanks(updated);
                         }}
                         className="w-full bg-white border border-slate-200 rounded-lg p-2 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500"
@@ -570,7 +584,7 @@ export default function JobForm({
               className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
               id="override-slab-checkbox"
             />
-            <span>Manual Price Override (கட்டணம் மாற்றியமைக்க)</span>
+            <span>Manual Price Override</span>
           </label>
 
           {isSlabOverridden && (
@@ -587,10 +601,11 @@ export default function JobForm({
                         type="number"
                         value={manualSlabRate}
                         onChange={(e) => {
-                          const val = Math.max(0, parseInt(e.target.value) || 0);
-                          setManualSlabRate(val);
+                          const val = e.target.value;
+                          const parsed = val === '' ? '' : Math.max(0, parseInt(val) || 0);
+                          setManualSlabRate(parsed);
                           // Propagate to the single individualTanksManualRates element too
-                          setIndividualTanksManualRates([val]);
+                          setIndividualTanksManualRates([parsed]);
                         }}
                         className="w-full bg-white border border-slate-200 rounded-xl p-2.5 pl-7 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="Rate per tank"
@@ -606,12 +621,12 @@ export default function JobForm({
               ) : (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-slate-600">Enter Individual Tank Prices (தனித்தனி டேங்க் கட்டணம்):</span>
+                    <span className="text-[11px] font-bold text-slate-600">Enter Individual Tank Prices:</span>
                     <button
                       type="button"
                       onClick={() => {
                         // Apply a flat rate to all tanks
-                        const flatRate = prompt("Enter flat rate to apply to all tanks (அனைத்து டேங்குகளுக்கும் ஒரே கட்டணம்):", String(manualSlabRate));
+                        const flatRate = prompt("Enter flat rate to apply to all tanks:", String(manualSlabRate));
                         if (flatRate !== null) {
                           const val = Math.max(0, parseInt(flatRate) || 0);
                           setManualSlabRate(val);
@@ -643,9 +658,10 @@ export default function JobForm({
                               type="number"
                               value={individualTanksManualRates[idx] !== undefined ? individualTanksManualRates[idx] : defaultRate}
                               onChange={(e) => {
-                                const val = Math.max(0, parseInt(e.target.value) || 0);
+                                const val = e.target.value;
+                                const parsed = val === '' ? '' : Math.max(0, parseInt(val) || 0);
                                 const updated = [...individualTanksManualRates];
-                                updated[idx] = val;
+                                updated[idx] = parsed;
                                 setIndividualTanksManualRates(updated);
                               }}
                               className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 pl-6 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -680,7 +696,7 @@ export default function JobForm({
               className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
               id="override-distance-checkbox"
             />
-            <span>Manual Travel Surcharge (பயணக் கட்டணம் மாற்றியமைக்க)</span>
+            <span>Manual Travel Surcharge</span>
           </label>
 
           {isDistanceOverridden && (
@@ -694,7 +710,10 @@ export default function JobForm({
                   <input
                     type="number"
                     value={manualDistanceCharge}
-                    onChange={(e) => setManualDistanceCharge(Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setManualDistanceCharge(val === '' ? '' : Math.max(0, parseInt(val) || 0));
+                    }}
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 pl-7 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
                     placeholder="Travel Surcharge"
                     id="manual-distance-charge-input"
@@ -713,7 +732,7 @@ export default function JobForm({
         <div>
           <label className="block text-slate-500 font-semibold mb-1 flex items-center gap-1">
             <Users className="w-4 h-4 text-slate-400" />
-            Staff Assigned (பணியாளர்கள்):
+            Staff Assigned:
           </label>
           <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
             {['Althaf', 'Nafees', 'Akram'].map((staff) => (
@@ -743,7 +762,7 @@ export default function JobForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Job Type (பணி வகை):
+              Job Type:
             </label>
             <select
               value={jobType}
@@ -752,14 +771,14 @@ export default function JobForm({
               id="job-type-select"
             >
               <option value="One-Time">One-Time Service</option>
-              <option value="Subscription">Subscription Service (தொடர் சேவை)</option>
+              <option value="Subscription">Subscription Service</option>
             </select>
           </div>
 
           {jobType === 'Subscription' && (
             <div>
               <label className="block text-blue-700 font-semibold mb-1">
-                Interval (கால இடைவெளி):
+                Interval:
               </label>
               <select
                 value={subscriptionInterval}
@@ -784,7 +803,10 @@ export default function JobForm({
               type="number"
               min={1}
               value={customIntervalMonths || ''}
-              onChange={(e) => setCustomIntervalMonths(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCustomIntervalMonths(val === '' ? '' : Math.max(1, parseInt(val) || 1));
+              }}
               className="w-24 bg-white border border-blue-200 rounded-lg p-2 font-bold text-center text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
               id="custom-interval-months"
               required
@@ -816,7 +838,7 @@ export default function JobForm({
 
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Payment Status (பணம்):
+              Payment Status:
             </label>
             <select
               value={paymentStatus}
@@ -828,14 +850,14 @@ export default function JobForm({
               }`}
               id="job-payment-status"
             >
-              <option value="Paid">Paid (பெறப்பட்டது)</option>
-              <option value="Pending">Pending (பாக்கி)</option>
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
             </select>
           </div>
 
           <div>
             <label className="block text-slate-500 font-semibold mb-1">
-              Payment Mode (முறை):
+              Payment Mode:
             </label>
             <select
               value={paymentMode}
@@ -844,8 +866,8 @@ export default function JobForm({
               id="job-payment-mode"
             >
               <option value="UPI">UPI (GPay/PhonePe)</option>
-              <option value="Cash">Cash (பணம்)</option>
-              <option value="Bank Transfer">Bank Transfer (வங்கி)</option>
+              <option value="Cash">Cash</option>
+              <option value="Bank Transfer">Bank Transfer</option>
             </select>
           </div>
         </div>
@@ -853,7 +875,7 @@ export default function JobForm({
         {/* Notes (Optional) */}
         <div>
           <label className="block text-slate-500 font-semibold mb-1">
-            Notes / Special Requests (குறிப்பு):
+            Notes / Special Requests:
           </label>
           <textarea
             value={notes}
@@ -869,7 +891,7 @@ export default function JobForm({
         <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col gap-1 text-blue-900" id="live-pricing-breakdown">
           <div className="flex items-center gap-1.5 text-blue-800 font-bold mb-1">
             <Calculator className="w-4 h-4" />
-            <span>Live Price Calculator (நேரடி விலை):</span>
+            <span>Live Price Calculator:</span>
           </div>
           <div className="space-y-1 font-medium leading-relaxed">
             <p>
@@ -902,7 +924,7 @@ export default function JobForm({
             )}
             <div className="h-px bg-blue-200/50 my-1"></div>
             <p className="text-sm font-bold text-blue-950 flex justify-between">
-              <span>Grand Total (மொத்த தொகை):</span>
+              <span>Grand Total:</span>
               <span className="text-blue-700 text-lg font-extrabold">{formatInRupees(breakdown.grandTotal)}</span>
             </p>
           </div>
@@ -914,7 +936,7 @@ export default function JobForm({
           className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-blue-100 transition-all cursor-pointer flex items-center justify-center gap-2"
           id="submit-job-form-btn"
         >
-          {initialJobToEdit ? 'Update Job Entry' : 'Log Job and Save (பதிவு செய்)'}
+          {initialJobToEdit ? 'Update Job Entry' : 'Log Job and Save'}
         </button>
       </form>
     </div>

@@ -203,7 +203,7 @@ export default function ReportsPage({
 
         <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs col-span-2 flex justify-between items-center bg-gradient-to-br from-blue-500/5 to-emerald-500/5">
           <div>
-            <p className="font-semibold text-slate-500 text-[10px] uppercase">Net Profit (நிகர லாபம்)</p>
+            <p className="font-semibold text-slate-500 text-[10px] uppercase">Net Profit</p>
             <p className={`text-2xl font-black mt-1 ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
               {formatInRupees(netProfit)}
             </p>
@@ -222,7 +222,7 @@ export default function ReportsPage({
       <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
         <h3 className="font-bold text-slate-800 flex items-center gap-1">
           <TrendingUp className="w-4 h-4 text-blue-500" />
-          Last 7 Days Balance (வருவாய் vs செலவு)
+          Last 7 Days Balance (Revenue vs Expenses)
         </h3>
         <div className="h-56" id="7-days-recharts-chart">
           <ResponsiveContainer width="100%" height="100%">
@@ -242,7 +242,7 @@ export default function ReportsPage({
       {/* Recharts Pie Chart: Expense categories */}
       {pieChartData.length > 0 && (
         <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
-          <h3 className="font-bold text-slate-800">Expenses by Category (செலவு வகை)</h3>
+          <h3 className="font-bold text-slate-800">Expenses by Category</h3>
           <div className="flex flex-col md:flex-row items-center justify-around gap-4">
             <div className="h-44 w-44">
               <ResponsiveContainer width="100%" height="100%">
@@ -284,7 +284,7 @@ export default function ReportsPage({
       <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
         <h3 className="font-bold text-slate-800 flex items-center gap-1">
           <Users className="w-4 h-4 text-blue-500" />
-          Staff Job Counts (ஆட்களின் பணி எண்ணிக்கை)
+          Staff Job Counts
         </h3>
         <p className="text-[10px] text-slate-400">Number of sites cleaned in the selected range.</p>
         <div className="grid grid-cols-3 gap-3 pt-1">
@@ -302,7 +302,7 @@ export default function ReportsPage({
       <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
         <h3 className="font-bold text-slate-800 flex items-center gap-1">
           <MapPin className="w-4 h-4 text-blue-500" />
-          Area Revenue Leaderboard (பகுதி வாரியாக வருவாய்)
+          Area Revenue Leaderboard
         </h3>
         <div className="space-y-2">
           {areaRevenueList.length === 0 ? (
@@ -328,7 +328,7 @@ export default function ReportsPage({
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-slate-800 flex items-center gap-1">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
-            Pending Payments List (பாக்கி விபரம்)
+            Pending Payments List
           </h3>
           <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-bold text-[10px]">
             Total: {formatInRupees(totalOutstanding)}

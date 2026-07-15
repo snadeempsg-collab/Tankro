@@ -131,7 +131,7 @@ export default function SubscriptionList({ jobs, onQuickLogJob }: SubscriptionLi
               cardStyle = 'border-red-200 bg-red-50/20 hover:border-red-300';
               badgeStyle = 'bg-red-100 text-red-700';
               urgencyIcon = <AlertCircle className="w-4 h-4 text-red-500" />;
-              urgencyLabel = `${Math.abs(daysRemaining)} Days Overdue! (முடிந்தது!)`;
+              urgencyLabel = `${Math.abs(daysRemaining)} Days Overdue!`;
             } else if (daysRemaining <= 7) {
               cardStyle = 'border-amber-200 bg-amber-50/20 hover:border-amber-300';
               badgeStyle = 'bg-amber-100 text-amber-700';
@@ -182,7 +182,7 @@ export default function SubscriptionList({ jobs, onQuickLogJob }: SubscriptionLi
                     id={`sub-quick-service-${sub.id}`}
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    Mark Serviced (முடிந்தது)
+                    Mark Serviced
                   </button>
                 </div>
               </div>

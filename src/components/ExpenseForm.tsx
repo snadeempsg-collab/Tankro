@@ -55,7 +55,7 @@ export default function ExpenseForm({
     e.preventDefault();
 
     if (amount <= 0) {
-      alert('Please enter a valid expense amount greater than ₹0 (செலவுத் தொகை பூஜ்ஜியத்தை விட அதிகமாக இருக்க வேண்டும்)');
+      alert('Please enter a valid expense amount greater than ₹0');
       return;
     }
 
@@ -85,7 +85,7 @@ export default function ExpenseForm({
         <div>
           <h2 className="text-xl font-bold font-display flex items-center gap-2">
             <Wallet className="w-5 h-5 animate-pulse" />
-            {initialExpenseToEdit ? 'Edit Expense' : 'New Expense Entry (செலவு பதிவு)'}
+            {initialExpenseToEdit ? 'Edit Expense' : 'New Expense Entry'}
           </h2>
           <p className="text-xs text-red-100 mt-0.5">
             Record business costs & supplies purchased
@@ -109,7 +109,7 @@ export default function ExpenseForm({
           <div>
             <label className="block text-slate-500 font-semibold mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              Expense Date (தேதி):
+              Expense Date:
             </label>
             <input
               type="date"
@@ -125,7 +125,7 @@ export default function ExpenseForm({
           <div>
             <label className="block text-slate-500 font-semibold mb-1 flex items-center gap-1">
               <User className="w-3.5 h-3.5 text-slate-400" />
-              Paid By (செலுத்தியவர்):
+              Paid By:
             </label>
             <select
               value={paidBy}
@@ -133,8 +133,8 @@ export default function ExpenseForm({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-red-500 font-semibold text-slate-800 cursor-pointer"
               id="expense-paid-by"
             >
-              <option value="Yuvaraj">Yuvaraj (யுவராஜ்)</option>
-              <option value="Nadeem">Nadeem (நதீம்)</option>
+              <option value="Yuvaraj">Yuvaraj</option>
+              <option value="Nadeem">Nadeem</option>
             </select>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function ExpenseForm({
         {/* Category Field */}
         <div>
           <label className="block text-slate-500 font-semibold mb-1">
-            Expense Category (வகை):
+            Expense Category:
           </label>
           <select
             value={category}
@@ -161,7 +161,7 @@ export default function ExpenseForm({
         {/* Amount Field */}
         <div>
           <label className="block text-slate-500 font-semibold mb-1">
-            Amount / செலவுத் தொகை (₹):
+            Amount (₹):
           </label>
           <div className="relative">
             <span className="absolute left-3 top-3 font-semibold text-slate-400 text-sm">
@@ -183,7 +183,7 @@ export default function ExpenseForm({
         <div>
           <label className="block text-slate-500 font-semibold mb-1 flex items-center gap-1">
             <FileText className="w-3.5 h-3.5 text-slate-400" />
-            Notes (விவரம் - optional):
+            Notes (optional):
           </label>
           <textarea
             value={notes}
@@ -209,7 +209,7 @@ export default function ExpenseForm({
           className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-red-100 transition-all cursor-pointer"
           id="submit-expense-btn"
         >
-          {initialExpenseToEdit ? 'Update Expense Entry' : 'Log Expense and Save (பதிவு செய்)'}
+          {initialExpenseToEdit ? 'Update Expense Entry' : 'Log Expense and Save'}
         </button>
       </form>
     </div>

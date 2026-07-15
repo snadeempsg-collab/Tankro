@@ -121,13 +121,13 @@ Payment Status: ${job.paymentStatus}`;
             <div className="text-center mb-6">
               <span className="text-blue-500 font-bold tracking-widest text-xs uppercase block">Professional Water Tank Cleaners</span>
               <h1 className="text-2xl font-bold text-slate-800 font-display">Tankro Sathyamangalam</h1>
-              <p className="text-xs text-slate-500">சத்தியமங்கலம், கோபி, புஞ்சை புளியம்பட்டி மற்றும் சுற்றுவட்டார பகுதிகள்</p>
+              <p className="text-xs text-slate-500">Sathyamangalam, Gobichettipalayam, Punjai Puliambatti and surrounding areas</p>
               <p className="text-xs text-slate-400 mt-1">Mobile: 98425 12345, 97864 32101</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-xs mb-6 pb-4 border-b border-slate-100">
               <div>
-                <h4 className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] mb-1">Billed To (வாடிக்கையாளர்):</h4>
+                <h4 className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] mb-1">Billed To:</h4>
                 <p className="font-bold text-slate-800 text-sm">{job.customerName}</p>
                 <p className="text-slate-600 mt-0.5">{job.customerPhone}</p>
                 <p className="text-slate-600 leading-relaxed mt-0.5">{job.customerAddress}, {job.area}{job.otherAreaText ? ` (${job.otherAreaText})` : ''}</p>
@@ -164,7 +164,7 @@ Payment Status: ${job.paymentStatus}`;
 
             {/* Service Items Table */}
             <div className="mb-6">
-              <h4 className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] mb-2">Service Summary (விவரம்):</h4>
+              <h4 className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] mb-2">Service Summary:</h4>
               <div className="border border-slate-100 rounded-xl overflow-hidden print:border-slate-300">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100 print:bg-white">
@@ -203,18 +203,18 @@ Payment Status: ${job.paymentStatus}`;
             {/* Calculation Totals */}
             <div className="w-full max-w-[240px] ml-auto mb-6 text-xs text-slate-700 space-y-2">
               <div className="flex justify-between">
-                <span>Subtotal (கூட்டுத்தொகை):</span>
+                <span>Subtotal:</span>
                 <span className="font-semibold">{formatInRupees(breakdown.subtotal)}</span>
               </div>
               {job.gstApplicable && (
                 <div className="flex justify-between text-slate-600">
-                  <span>GST 18% (ஜிஎஸ்டி):</span>
+                  <span>GST 18%:</span>
                   <span className="font-semibold">{formatInRupees(breakdown.gstAmount)}</span>
                 </div>
               )}
               <div className="h-px bg-slate-100 my-1"></div>
               <div className="flex justify-between text-sm font-bold text-slate-950">
-                <span>Total Amount (மொத்தம்):</span>
+                <span>Total Amount:</span>
                 <span className="text-blue-600">{formatInRupees(breakdown.grandTotal)}</span>
               </div>
             </div>

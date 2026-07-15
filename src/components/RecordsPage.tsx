@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Search, Calendar, ChevronRight, Edit2, Trash2, FileText, CheckCircle, Clock, Tag, User, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Search, Calendar, ChevronRight, Edit2, Trash2, FileText, CheckCircle, Clock, Tag, User, MapPin, AlertTriangle } from 'lucide-react';
 import { Job, Expense, AppSettings } from '../types';
 import { formatInRupees } from '../utils';
 
@@ -34,6 +35,19 @@ export default function RecordsPage({
   settings,
 }: RecordsPageProps) {
   const [activeTab, setActiveTab] = useState<'jobs' | 'expenses'>(defaultSubTab || 'jobs');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'job' | 'expense' | 'alert';
+    id?: string;
+    title: string;
+    message: string;
+    messageTa?: string;
+  }>({
+    isOpen: false,
+    type: 'alert',
+    title: '',
+    message: '',
+  });
 
   React.useEffect(() => {
     if (defaultSubTab) {
@@ -115,22 +129,40 @@ export default function RecordsPage({
 
   const handleDeleteJobClick = (jobId: string, name: string) => {
     if (settings.currentUserRole === 'Manager') {
-      alert('Access Denied: Managers (Akram) are not authorized to delete transaction records. Only Owners (Nadeem & Yuvaraj) can delete items. (உரிமையாளர்கள் மட்டுமே நீக்க முடியும்!)');
+      setConfirmModal({
+        isOpen: true,
+        type: 'alert',
+        title: 'Access Denied',
+        message: 'Managers (Akram) are not authorized to delete transaction records. Only Owners (Nadeem & Yuvaraj) can delete items.',
+      });
       return;
     }
-    if (confirm(`Are you sure you want to delete the job entry for ${name}? (இதை நீக்க விரும்புகிறீர்களா?)`)) {
-      onDeleteJob(jobId);
-    }
+    setConfirmModal({
+      isOpen: true,
+      type: 'job',
+      id: jobId,
+      title: 'Delete Job Entry',
+      message: `Are you sure you want to delete the job entry for ${name}?`,
+    });
   };
 
   const handleDeleteExpenseClick = (expId: string, cat: string, amt: number) => {
     if (settings.currentUserRole === 'Manager') {
-      alert('Access Denied: Managers (Akram) are not authorized to delete transaction records. Only Owners (Nadeem & Yuvaraj) can delete items. (உரிமையாளர்கள் மட்டுமே நீக்க முடியும்!)');
+      setConfirmModal({
+        isOpen: true,
+        type: 'alert',
+        title: 'Access Denied',
+        message: 'Managers (Akram) are not authorized to delete transaction records. Only Owners (Nadeem & Yuvaraj) can delete items.',
+      });
       return;
     }
-    if (confirm(`Are you sure you want to delete the expense of ${formatInRupees(amt)} for ${cat}?`)) {
-      onDeleteExpense(expId);
-    }
+    setConfirmModal({
+      isOpen: true,
+      type: 'expense',
+      id: expId,
+      title: 'Delete Expense Log',
+      message: `Are you sure you want to delete the expense of ${formatInRupees(amt)} for ${cat}?`,
+    });
   };
 
   return (
@@ -149,7 +181,7 @@ export default function RecordsPage({
             }`}
             id="records-jobs-tab"
           >
-            Jobs Log (பணிகள்)
+            Jobs Log
           </button>
           <button
             onClick={() => {
@@ -161,7 +193,7 @@ export default function RecordsPage({
             }`}
             id="records-expenses-tab"
           >
-            Expenses Log (செலவுகள்)
+            Expenses Log
           </button>
         </div>
 
@@ -306,7 +338,7 @@ export default function RecordsPage({
                     id={`view-inv-rec-${job.id}`}
                   >
                     <FileText className="w-3.5 h-3.5" />
-                    Invoice (பில்)
+                    Invoice
                   </button>
 
                   <div className="flex gap-1">
@@ -392,6 +424,86 @@ export default function RecordsPage({
           )
         )}
       </div>
+
+      {/* Custom Confirmation/Alert Modal */}
+      <AnimatePresence>
+        {confirmModal.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" id="records-confirm-modal-overlay">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="relative bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl border border-slate-100 text-center space-y-4"
+              id="records-confirm-modal-card"
+            >
+              <div className="mx-auto w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-800 leading-tight">
+                  {confirmModal.title}
+                </h3>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-normal px-2">
+                {confirmModal.message}
+              </p>
+
+              <div className="flex gap-2.5 pt-2">
+                {confirmModal.type === 'alert' ? (
+                  <button
+                    onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl cursor-pointer transition-all text-xs"
+                    id="confirm-modal-close-btn"
+                  >
+                    Got It
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                      className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl cursor-pointer transition-all text-xs"
+                      id="confirm-modal-cancel-btn"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirmModal.id) {
+                          if (confirmModal.type === 'job') {
+                            onDeleteJob(confirmModal.id);
+                          } else if (confirmModal.type === 'expense') {
+                            onDeleteExpense(confirmModal.id);
+                          }
+                        }
+                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                      }}
+                      className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl cursor-pointer transition-all text-xs shadow-md shadow-red-100"
+                      id="confirm-modal-action-btn"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

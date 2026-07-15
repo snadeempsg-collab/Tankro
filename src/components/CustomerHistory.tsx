@@ -75,7 +75,7 @@ export default function CustomerHistory({
 
   const handleSaveNotes = (key: string) => {
     onSaveCustomerNotes(key, editingNotesText);
-    alert('Customer notes saved! (குறிப்பு சேமிக்கப்பட்டது!)');
+    alert('Customer notes saved!');
   };
 
   // Quick Action triggers
@@ -263,7 +263,7 @@ export default function CustomerHistory({
                     <div className="space-y-1.5">
                       <label className="block text-slate-500 font-semibold flex items-center gap-1">
                         <FileText className="w-3.5 h-3.5 text-slate-400" />
-                        Staff Notes for this Customer (எ.கா: மாடியில் 2 தொட்டிகள் உள்ளன):
+                        Staff Notes for this Customer:
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -289,7 +289,7 @@ export default function CustomerHistory({
                     <div className="space-y-2">
                       <h4 className="font-bold text-slate-800 flex items-center gap-1">
                         <ClipboardList className="w-4 h-4 text-slate-400" />
-                        Service History Logs (முந்தைய சேவைகள்):
+                        Service History Logs:
                       </h4>
                       <div className="space-y-2 divide-y divide-slate-100 bg-white border border-slate-100 rounded-2xl p-3 max-h-48 overflow-y-auto">
                         {cust.jobs

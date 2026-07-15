@@ -1,0 +1,70 @@
+{
+  "collections": {
+    "jobs": {
+      "description": "Water tank cleaning jobs",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "customerName": "string",
+        "customerPhone": "string",
+        "customerAddress": "string",
+        "area": "string",
+        "otherAreaText": "string?",
+        "tankCapacity": "number",
+        "numTanks": "number",
+        "individualTanks": "array?",
+        "distance": "number",
+        "staffAssigned": "array",
+        "jobType": "string",
+        "subscriptionInterval": "string?",
+        "customIntervalMonths": "number?",
+        "gstApplicable": "boolean",
+        "paymentStatus": "string",
+        "paymentMode": "string",
+        "notes": "string?",
+        "isSlabOverridden": "boolean?",
+        "manualSlabRate": "number?",
+        "individualTanksManualRates": "array?",
+        "isDistanceOverridden": "boolean?",
+        "manualDistanceCharge": "number?",
+        "subtotal": "number",
+        "gstAmount": "number",
+        "grandTotal": "number",
+        "nextServiceDueDate": "string?"
+      }
+    },
+    "expenses": {
+      "description": "Business expenses logged by owners",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "category": "string",
+        "amount": "number",
+        "paidBy": "string",
+        "notes": "string?"
+      }
+    },
+    "attendance": {
+      "description": "Daily staff attendance and wages records",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "records": "map",
+        "wages": "map"
+      }
+    },
+    "customerNotes": {
+      "description": "Customer persistent notes and logs",
+      "fields": {
+        "id": "string",
+        "text": "string"
+      }
+    },
+    "settings": {
+      "description": "Global settings shared across all users (like daily wages config)",
+      "fields": {
+        "dailyWages": "map"
+      }
+    }
+  }
+}
